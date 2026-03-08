@@ -1,58 +1,37 @@
 # app/services/auth_service.py
-#
-# Handles user registration and login.
-# Users are stored in Firestore (our database).
-# Passwords are hashed with bcrypt before saving.
-# On login, we return a JWT token.
 
 from datetime import datetime
 from typing import Optional
-from app.services.firebase_service import db
+from app.services.firebase_service import get_all, get_one, create_one, query_by_field
 from app.core.security import hash_password, verify_password, create_access_token
 from app.schemas.user_schema import SignupRequest, LoginRequest
-
 
 COLLECTION = "users"
 
 
 def signup(data: SignupRequest) -> Optional[dict]:
-    """
-    Create a new user account.
-    
-    Steps:
-    1. Check if email already exists
-    2. Hash the password
-    3. Save user to Firestore
-    4. Return user data + JWT token
-    """
-    # Check if email already registered
-    existing = (
-        db.collection(COLLECTION)
-        .where("email", "==", data.email)
-        .limit(1)
-        .get()
-    )
+    # Check if email already exists
+    existing = query_by_field(COLLECTION, "email", data.email)
     if existing:
-        return None  # Email taken
+        return None
 
     user_data = {
         "name": data.name,
         "email": data.email,
-        "password_hash": hash_password(data.password),  # NEVER store plain text
+        "password_hash": hash_password(data.password),
         "phone": data.phone,
         "role": "customer",
         "created_at": datetime.utcnow().isoformat(),
     }
 
-    _, doc_ref = db.collection(COLLECTION).add(user_data)
-    user_data["id"] = doc_ref.id
+    created = create_one(COLLECTION, user_data)
+    user_id = created["id"]
 
-    # Create JWT token
-    token = create_access_token({"sub": doc_ref.id, "email": data.email})
+    token = create_access_token({"sub": user_id, "email": data.email})
 
     return {
         "user": {
-            "id": doc_ref.id,
+            "id": user_id,
             "name": user_data["name"],
             "email": user_data["email"],
             "phone": user_data["phone"],
@@ -64,31 +43,14 @@ def signup(data: SignupRequest) -> Optional[dict]:
 
 
 def login(data: LoginRequest) -> Optional[dict]:
-    """
-    Authenticate a user.
-    
-    Steps:
-    1. Find user by email in Firestore
-    2. Verify password against stored hash
-    3. Return user data + new JWT token
-    """
-    docs = (
-        db.collection(COLLECTION)
-        .where("email", "==", data.email)
-        .limit(1)
-        .get()
-    )
+    users = query_by_field(COLLECTION, "email", data.email)
+    if not users:
+        return None
 
-    if not docs:
-        return None  # User not found
+    user = users[0]
 
-    doc = docs[0]
-    user = doc.to_dict()
-    user["id"] = doc.id
-
-    # Check password
     if not verify_password(data.password, user.get("password_hash", "")):
-        return None  # Wrong password
+        return None
 
     token = create_access_token({"sub": user["id"], "email": user["email"]})
 
@@ -106,10 +68,6 @@ def login(data: LoginRequest) -> Optional[dict]:
 
 
 def get_user_from_token(token: str) -> Optional[dict]:
-    """
-    Validate a JWT token and return the user.
-    Used as a dependency in protected routes.
-    """
     from app.core.security import decode_access_token
     payload = decode_access_token(token)
     if not payload:
@@ -119,10 +77,4 @@ def get_user_from_token(token: str) -> Optional[dict]:
     if not user_id:
         return None
 
-    doc = db.collection(COLLECTION).document(user_id).get()
-    if not doc.exists:
-        return None
-
-    user = doc.to_dict()
-    user["id"] = doc.id
-    return user
+    return get_one(COLLECTION, user_id)

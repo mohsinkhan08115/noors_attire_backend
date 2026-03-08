@@ -1,0 +1,15 @@
+# Secret files - NEVER commit these
+.env
+serviceAccountKey.json
+serviceAccountKey.json (2).json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.venv/
+
+# Vercel
+.vercel
