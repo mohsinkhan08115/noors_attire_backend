@@ -125,30 +125,28 @@ def seed_products():
 async def upload_product_image(product_id: str, file: UploadFile = File(...)):
     """
     Upload a product image to Firebase Storage.
-    
+
     How it works:
     1. Read the uploaded file bytes
     2. Upload to Firebase Storage under 'products/filename'
     3. Get the public URL
-    4. Add URL to the product's image_urls list in Firestore
+    4. Add URL to the product's image_urls list in Realtime Database
     """
-    from app.services.firebase_service import upload_image, db
+    from app.services.firebase_service import upload_image, get_one, update_one
 
-    # Read file content
+    # Get existing product
+    product = get_one("products", product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Upload image to Firebase Storage
     content = await file.read()
-
-    # Upload to Firebase Storage
     filename = f"{product_id}_{file.filename}"
     public_url = upload_image(content, filename, file.content_type)
 
-    # Add URL to product document
-    doc_ref = db.collection("products").document(product_id)
-    doc = doc_ref.get()
-    if not doc.exists:
-        raise HTTPException(status_code=404, detail="Product not found")
-
-    current_urls = doc.to_dict().get("image_urls", [])
+    # Append new URL to existing image_urls list
+    current_urls = product.get("image_urls", [])
     current_urls.append(public_url)
-    doc_ref.update({"image_urls": current_urls})
+    update_one("products", product_id, {"image_urls": current_urls})
 
     return {"image_url": public_url, "message": "Image uploaded successfully"}

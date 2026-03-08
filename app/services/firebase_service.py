@@ -36,13 +36,28 @@ _init_firebase()
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 
+def _fix_lists(data: dict) -> dict:
+    """
+    Firebase Realtime Database converts Python lists to dicts with numeric keys.
+    e.g. ["a", "b"] becomes {"0": "a", "1": "b"} or {3: "url"} for sparse arrays.
+    This function converts them back to proper Python lists.
+    """
+    for key, value in data.items():
+        if isinstance(value, dict) and all(str(k).isdigit() for k in value.keys()):
+            # Convert numeric-keyed dict back to list, sorted by key
+            data[key] = [value[k] for k in sorted(value.keys(), key=lambda x: int(x))]
+        elif isinstance(value, dict):
+            data[key] = _fix_lists(value)
+    return data
+
+
 def get_all(collection: str) -> list:
     """Get all records from a collection. Returns list of dicts with 'id' field."""
     ref = db.reference(collection)
     data = ref.get()
     if not data:
         return []
-    return [{"id": k, **v} for k, v in data.items()]
+    return [_fix_lists({"id": k, **v}) for k, v in data.items()]
 
 
 def get_one(collection: str, doc_id: str) -> dict | None:
@@ -51,7 +66,7 @@ def get_one(collection: str, doc_id: str) -> dict | None:
     data = ref.get()
     if not data:
         return None
-    return {"id": doc_id, **data}
+    return _fix_lists({"id": doc_id, **data})
 
 
 def create_one(collection: str, data: dict) -> dict:
@@ -68,7 +83,7 @@ def update_one(collection: str, doc_id: str, data: dict) -> dict | None:
         return None
     ref.update(data)
     updated = ref.get()
-    return {"id": doc_id, **updated}
+    return _fix_lists({"id": doc_id, **updated})
 
 
 def delete_one(collection: str, doc_id: str) -> bool:
@@ -86,7 +101,7 @@ def query_by_field(collection: str, field: str, value) -> list:
     data = ref.order_by_child(field).equal_to(value).get()
     if not data:
         return []
-    return [{"id": k, **v} for k, v in data.items()]
+    return [_fix_lists({"id": k, **v}) for k, v in data.items()]
 
 
 def upload_image(file_data: bytes, filename: str, content_type: str = "image/jpeg") -> str:
