@@ -8,6 +8,17 @@ from app.schemas.user_schema import SignupRequest, LoginRequest
 
 COLLECTION = "users"
 
+def make_user_admin(user_id: str):
+    """
+    One-time utility: promote a user to admin role.
+    Call this from a management script or seed endpoint.
+    
+    Usage:
+      from app.services.auth_service import make_user_admin
+      make_user_admin("your-user-id-here")
+    """
+    from app.services.firebase_service import update_one
+    return update_one("users", user_id, {"role": "admin"})
 
 def signup(data: SignupRequest) -> Optional[dict]:
     # Check if email already exists

@@ -38,6 +38,6 @@ def get_order_by_id(order_id: str) -> Optional[dict]:
 
 def update_order_status(order_id: str, new_status: OrderStatus) -> Optional[dict]:
     return update_one(COLLECTION, order_id, {
-        "status": new_status.value,
+        "status": str(new_status),
         "updated_at": datetime.utcnow().isoformat()
     })
