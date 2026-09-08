@@ -1,7 +1,7 @@
 # app/schemas/order_schema.py
 
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from enum import Enum
 
 
@@ -33,36 +33,23 @@ class ShippingAddress(BaseModel):
     postal_code: Optional[str] = None
 
 
+class GiftInfo(BaseModel):
+    """Gift Mode checkout options."""
+    is_gift: bool = True
+    recipient_name: Optional[str] = None
+    gift_message: Optional[str] = None
+    gift_packaging: Optional[str] = None
+    packaging_fee: Optional[float] = 0.0
+    requested_delivery_date: Optional[str] = None
+
+
 class OrderCreate(BaseModel):
     """Data required to place an order."""
     items: List[OrderItem]
     shipping_address: ShippingAddress
     payment_method: str = "cash_on_delivery"
     notes: Optional[str] = None
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "items": [
-                    {
-                        "product_id": "abc123",
-                        "product_name": "Traditional Pashtun Perahan",
-                        "quantity": 2,
-                        "price": 4500.0,
-                        "size": "M",
-                        "color": "White"
-                    }
-                ],
-                "shipping_address": {
-                    "full_name": "Noor Ahmed",
-                    "phone": "+92300000000",
-                    "address": "House 12, Street 5",
-                    "city": "Peshawar",
-                    "province": "KPK"
-                },
-                "payment_method": "cash_on_delivery"
-            }
-        }
+    gift_info: Optional[GiftInfo] = None
 
 
 class OrderResponse(BaseModel):
@@ -75,4 +62,5 @@ class OrderResponse(BaseModel):
     status: OrderStatus
     payment_method: str
     notes: Optional[str] = None
+    gift_info: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None

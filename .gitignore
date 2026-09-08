@@ -13,3 +13,5 @@ env/
 
 # Vercel
 .vercel
+
+uploads/

@@ -54,13 +54,24 @@ def signup(data: SignupRequest) -> Optional[dict]:
 
 
 def login(data: LoginRequest) -> Optional[dict]:
+    print(f"[DEBUG] Login endpoint called with email: '{data.email}'")
     users = query_by_field(COLLECTION, "email", data.email)
     if not users:
+        print("[DEBUG] No user found with this email.")
         return None
 
     user = users[0]
+    print(f"[DEBUG] User found. ID: {user.get('id')}, Role: {user.get('role')}")
 
-    if not verify_password(data.password, user.get("password_hash", "")):
+    try:
+        is_valid = verify_password(data.password, user.get("password_hash", ""))
+        print(f"[DEBUG] Password verification: {is_valid}")
+        if not is_valid:
+            return None
+    except Exception as e:
+        # If the database contains an invalid/plain-text hash, reject the login safely
+        # instead of throwing a 500 UnknownHashError.
+        print(f"[DEBUG] Exception during verify_password: {e}")
         return None
 
     token = create_access_token({"sub": user["id"], "email": user["email"]})
@@ -68,7 +79,7 @@ def login(data: LoginRequest) -> Optional[dict]:
     return {
         "user": {
             "id": user["id"],
-            "name": user["name"],
+            "name": user.get("name", "Admin"),
             "email": user["email"],
             "phone": user.get("phone"),
             "created_at": user.get("created_at"),

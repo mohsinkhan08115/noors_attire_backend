@@ -19,6 +19,14 @@ def _get_authenticated_user(authorization: Optional[str]):
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return user
 
+
+def _require_admin(authorization: Optional[str]):
+    """Stricter guard for routes that must not leak other customers' orders."""
+    user = _get_authenticated_user(authorization)
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
 @router.post("/", response_model=OrderResponse, status_code=201)
 def create_order(order_data: OrderCreate, authorization: Optional[str] = Header(None)):
     user = _get_authenticated_user(authorization)
@@ -26,7 +34,8 @@ def create_order(order_data: OrderCreate, authorization: Optional[str] = Header(
 
 @router.get("/all")
 def get_all_orders(authorization: Optional[str] = Header(None)):
-    _get_authenticated_user(authorization)
+    """Admin only — lists every customer's orders. Use /admin/orders instead where possible."""
+    _require_admin(authorization)
     from app.services.firebase_service import get_all
     return get_all("orders")
 
@@ -47,7 +56,8 @@ def get_order(order_id: str, authorization: Optional[str] = Header(None)):
 
 @router.put("/{order_id}/status")
 def update_order_status(order_id: str, data: StatusUpdate, authorization: Optional[str] = Header(None)):
-    _get_authenticated_user(authorization)
+    """Admin only — customers cannot change order status (including their own or others')."""
+    _require_admin(authorization)
     updated = order_service.update_order_status(order_id, data.status)
     if not updated:
         raise HTTPException(status_code=404, detail="Order not found")

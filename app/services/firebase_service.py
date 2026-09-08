@@ -76,6 +76,18 @@ def create_one(collection: str, data: dict) -> dict:
     return {"id": new_ref.key, **data}
 
 
+def set_one(collection: str, doc_id: str, data: dict) -> dict:
+    """Create or fully overwrite a record at a known ID (upsert).
+
+    Unlike update_one(), this does not require the record to already
+    exist — useful for collections keyed by an external ID (e.g. a
+    wishlist document keyed by user_id).
+    """
+    ref = db.reference(f"{collection}/{doc_id}")
+    ref.set(data)
+    return {"id": doc_id, **data}
+
+
 def update_one(collection: str, doc_id: str, data: dict) -> dict | None:
     """Update specific fields of a record."""
     ref = db.reference(f"{collection}/{doc_id}")

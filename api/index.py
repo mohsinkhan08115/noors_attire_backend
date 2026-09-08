@@ -3,11 +3,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
-from api.products import router as products_router
-from api.auth     import router as auth_router
-from api.orders   import router as orders_router
-from api.users    import router as users_router
-from api.admin    import router as admin_router
+from api.products       import router as products_router
+from api.auth           import router as auth_router
+from api.orders         import router as orders_router
+from api.users          import router as users_router
+from api.admin          import router as admin_router
+from api.wishlist       import router as wishlist_router
+from api.homepage       import router as homepage_router
+from api.variants       import router as variants_router
+from api.looks          import router as looks_router
+from api.lookbooks      import router as lookbooks_router
+from api.alerts         import router as alerts_router
+from api.style_gallery  import router as style_gallery_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -25,11 +32,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(products_router, prefix="/products", tags=["Products"])
-app.include_router(auth_router,     prefix="/auth",     tags=["Authentication"])
-app.include_router(orders_router,   prefix="/orders",   tags=["Orders"])
-app.include_router(users_router,    prefix="/users",    tags=["Users"])
-app.include_router(admin_router,    prefix="/admin",    tags=["Admin"])
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Ensure the uploads directory exists
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+app.include_router(products_router,      prefix="/products",      tags=["Products"])
+app.include_router(auth_router,          prefix="/auth",          tags=["Authentication"])
+app.include_router(orders_router,        prefix="/orders",        tags=["Orders"])
+app.include_router(users_router,         prefix="/users",         tags=["Users"])
+app.include_router(admin_router,         prefix="/admin",         tags=["Admin"])
+app.include_router(wishlist_router,      prefix="/wishlist",      tags=["Wishlist"])
+app.include_router(homepage_router,      prefix="/homepage",      tags=["Homepage"])
+app.include_router(variants_router,      prefix="/products",      tags=["Variants"])
+app.include_router(looks_router,         prefix="/looks",         tags=["Looks"])
+app.include_router(lookbooks_router,     prefix="/lookbooks",     tags=["Lookbooks"])
+app.include_router(alerts_router,        prefix="/alerts",        tags=["Alerts"])
+app.include_router(style_gallery_router, prefix="/style-gallery", tags=["Style Gallery"])
 
 @app.get("/", tags=["Health"])
 def root():
