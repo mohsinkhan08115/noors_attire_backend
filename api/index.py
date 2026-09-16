@@ -27,6 +27,7 @@ app = FastAPI(
 from starlette.datastructures import Headers
 from starlette.responses import Response
 
+
 class RobustCORSMiddleware(CORSMiddleware):
     def preflight_response(self, request_headers: Headers) -> Response:
         response = super().preflight_response(request_headers)
@@ -38,12 +39,17 @@ class RobustCORSMiddleware(CORSMiddleware):
             async def send_with_pna(message):
                 if message["type"] == "http.response.start":
                     headers = list(message.get("headers", []))
-                    headers.append((b"access-control-allow-private-network", b"true"))
+                    headers.append(
+                        (b"access-control-allow-private-network", b"true")
+                    )
                     message["headers"] = headers
+
                 await send(message)
+
             await super().__call__(scope, receive, send_with_pna)
         else:
             await super().__call__(scope, receive, send)
+
 
 app.add_middleware(
     RobustCORSMiddleware,
@@ -53,34 +59,97 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi.staticfiles import StaticFiles
-import os
 
-# Ensure the uploads directory exists
-os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# NOTE:
+# Vercel's filesystem is read-only.
+# Do not create or mount a local "uploads" directory here.
+#
+# os.makedirs("uploads", exist_ok=True)
+# app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-app.include_router(products_router,      prefix="/products",      tags=["Products"])
-app.include_router(auth_router,          prefix="/auth",          tags=["Authentication"])
-app.include_router(orders_router,        prefix="/orders",        tags=["Orders"])
-app.include_router(users_router,         prefix="/users",         tags=["Users"])
-app.include_router(admin_router,         prefix="/admin",         tags=["Admin"])
-app.include_router(wishlist_router,      prefix="/wishlist",      tags=["Wishlist"])
-app.include_router(homepage_router,      prefix="/homepage",      tags=["Homepage"])
-app.include_router(variants_router,      prefix="/products",      tags=["Variants"])
-app.include_router(looks_router,         prefix="/looks",         tags=["Looks"])
-app.include_router(lookbooks_router,     prefix="/lookbooks",     tags=["Lookbooks"])
-app.include_router(alerts_router,        prefix="/alerts",        tags=["Alerts"])
-app.include_router(style_gallery_router, prefix="/style-gallery", tags=["Style Gallery"])
+
+app.include_router(
+    products_router,
+    prefix="/products",
+    tags=["Products"],
+)
+
+app.include_router(
+    auth_router,
+    prefix="/auth",
+    tags=["Authentication"],
+)
+
+app.include_router(
+    orders_router,
+    prefix="/orders",
+    tags=["Orders"],
+)
+
+app.include_router(
+    users_router,
+    prefix="/users",
+    tags=["Users"],
+)
+
+app.include_router(
+    admin_router,
+    prefix="/admin",
+    tags=["Admin"],
+)
+
+app.include_router(
+    wishlist_router,
+    prefix="/wishlist",
+    tags=["Wishlist"],
+)
+
+app.include_router(
+    homepage_router,
+    prefix="/homepage",
+    tags=["Homepage"],
+)
+
+app.include_router(
+    variants_router,
+    prefix="/products",
+    tags=["Variants"],
+)
+
+app.include_router(
+    looks_router,
+    prefix="/looks",
+    tags=["Looks"],
+)
+
+app.include_router(
+    lookbooks_router,
+    prefix="/lookbooks",
+    tags=["Lookbooks"],
+)
+
+app.include_router(
+    alerts_router,
+    prefix="/alerts",
+    tags=["Alerts"],
+)
+
+app.include_router(
+    style_gallery_router,
+    prefix="/style-gallery",
+    tags=["Style Gallery"],
+)
+
 
 @app.get("/", tags=["Health"])
 def root():
     return {
-        "app":     settings.APP_NAME,
+        "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "status":  "running",
-        "docs":    "/docs",
+        "status": "running",
+        "docs": "/docs",
     }
+
 
 @app.get("/health", tags=["Health"])
 def health():
