@@ -13,13 +13,15 @@ class ProductCreate(BaseModel):
     price: float = Field(..., gt=0)
     sale_price: Optional[float] = Field(None, gt=0, description="Discounted price, if the product is on sale. Must be lower than price.")
     sku: Optional[str] = Field(None, max_length=50)
-    category: CategoryEnum
+    category: str = Field(..., min_length=1, max_length=50)
     sizes: List[str] = Field(default=["S", "M", "L", "XL"])
     colors: List[str] = Field(default=[])
     stock: int = Field(default=0, ge=0)
     image_urls: List[str] = Field(default=[])
     is_featured: bool = False
     is_bestseller: bool = False
+    show_on_home: bool = False
+    home_order: int = 0
     tags: List[str] = Field(default=[])
 
 class ProductUpdate(BaseModel):
@@ -28,13 +30,15 @@ class ProductUpdate(BaseModel):
     price: Optional[float] = None
     sale_price: Optional[float] = None
     sku: Optional[str] = None
-    category: Optional[CategoryEnum] = None
+    category: Optional[str] = None
     sizes: Optional[List[str]] = None
     colors: Optional[List[str]] = None
     stock: Optional[int] = None
     image_urls: Optional[List[str]] = None
     is_featured: Optional[bool] = None
     is_bestseller: Optional[bool] = None
+    show_on_home: Optional[bool] = None
+    home_order: Optional[int] = None
     tags: Optional[List[str]] = None
 
 class ProductResponse(BaseModel):
@@ -51,6 +55,8 @@ class ProductResponse(BaseModel):
     image_urls: List[str] = []
     is_featured: bool = False
     is_bestseller: bool = False
+    show_on_home: bool = False
+    home_order: int = 0
     tags: List[str] = []
     created_at: Optional[str] = None
 

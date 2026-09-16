@@ -24,8 +24,29 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+from starlette.datastructures import Headers
+from starlette.responses import Response
+
+class RobustCORSMiddleware(CORSMiddleware):
+    def preflight_response(self, request_headers: Headers) -> Response:
+        response = super().preflight_response(request_headers)
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+        return response
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            async def send_with_pna(message):
+                if message["type"] == "http.response.start":
+                    headers = list(message.get("headers", []))
+                    headers.append((b"access-control-allow-private-network", b"true"))
+                    message["headers"] = headers
+                await send(message)
+            await super().__call__(scope, receive, send_with_pna)
+        else:
+            await super().__call__(scope, receive, send)
+
 app.add_middleware(
-    CORSMiddleware,
+    RobustCORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],

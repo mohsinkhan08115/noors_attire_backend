@@ -40,8 +40,8 @@ class HomepageSection(BaseModel):
 DEFAULT_SECTION_KEYS = [
     "categories",
     "featured",
-    "new_arrivals",
     "bestsellers",
+    "new_arrivals",
     "editorial",
     "showcase",
     "brand_story",

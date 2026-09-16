@@ -8,15 +8,43 @@ from app.schemas.product_schema import ProductCreate, ProductUpdate
 COLLECTION = "products"
 
 
-def get_all_products(category=None, featured=None, bestseller=None, limit=50) -> List[dict]:
+def get_all_products(category=None, featured=None, bestseller=None, show_on_home=None, limit=50) -> List[dict]:
     products = get_all(COLLECTION)
+    
+    # Sort products by created_at descending so newest appear first
+    products.sort(key=lambda p: p.get("created_at", ""), reverse=True)
+    
     if category:
         products = [p for p in products if p.get("category") == category]
     if featured is not None:
         products = [p for p in products if p.get("is_featured") == featured]
     if bestseller is not None:
         products = [p for p in products if p.get("is_bestseller") == bestseller]
+    if show_on_home is not None:
+        products = [p for p in products if p.get("show_on_home") == show_on_home]
     return products[:limit]
+
+
+def get_home_products() -> List[dict]:
+    products = get_all(COLLECTION)
+
+    def _sort_key(p):
+        is_home = 0 if p.get("show_on_home") in (True, "true", "True", 1) else 1
+        order = p.get("home_order", 0)
+        try:
+            order_num = int(order)
+        except (ValueError, TypeError):
+            order_num = 9999
+        created_ts = 0
+        if p.get("created_at"):
+            try:
+                created_ts = datetime.fromisoformat(p.get("created_at")).timestamp()
+            except Exception:
+                created_ts = 0
+        return (is_home, order_num, -created_ts)
+
+    products.sort(key=_sort_key)
+    return products
 
 
 def get_product_by_id(product_id: str) -> Optional[dict]:

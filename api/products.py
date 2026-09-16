@@ -28,14 +28,22 @@ def get_products(
     category: Optional[str] = Query(None, description="Filter by category"),
     featured: Optional[bool] = Query(None, description="Filter featured products"),
     bestseller: Optional[bool] = Query(None, description="Filter bestsellers"),
+    show_on_home: Optional[bool] = Query(None, description="Filter products shown on home"),
     limit: int = Query(50, le=200, description="Max number of products to return"),
 ):
     return product_service.get_all_products(
         category=category,
         featured=featured,
         bestseller=bestseller,
+        show_on_home=show_on_home,
         limit=limit
     )
+
+
+@router.get("/home", response_model=List[ProductResponse])
+def get_home_products():
+    """Get products configured to appear on the Home Screen, sorted by home_order."""
+    return product_service.get_home_products()
 
 
 @router.get("/search", response_model=List[ProductResponse])
